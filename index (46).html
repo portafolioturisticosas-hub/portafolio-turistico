@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portafolio Turístico — Sistema de Gestión</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#87CEEB;--orange:#4A90C4;--dark1:#1A1A18;--dark2:#252520;--dark3:#2E2E28;
+  --text:#F0EDE8;--text2:#B8B0A0;--text3:#7A7468;
+  --green:#5A8A5A;--red:#8A4040;--blue:#3A5A8A;
+  --r:8px;--sidebar:220px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--dark1);color:var(--text);min-height:100vh}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--dark1)}
+.login-card{background:var(--dark2);border:1px solid rgba(135,206,235,0.2);border-radius:16px;padding:40px;width:380px;text-align:center}
+.login-logo{font-family:'DM Serif Display',serif;font-size:26px;color:var(--gold);margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--text3);margin-bottom:32px;letter-spacing:1px;text-transform:uppercase}
+.login-card input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;margin-bottom:12px}
+.login-card input:focus{outline:none;border-color:rgba(74,144,196,0.5)}
+.btn-login{width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px}
+.login-err{color:#E07070;font-size:12px;margin-top:8px;display:none}
+
+/* LAYOUT */
+#app{display:none;min-height:100vh;flex-direction:row}
+.sidebar{width:var(--sidebar);background:var(--dark2);border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.sidebar-logo-name{font-family:'DM Serif Display',serif;font-size:15px;color:var(--gold);line-height:1.2}
+.sidebar-logo-sub{font-size:10px;color:var(--text3);letter-spacing:0.5px;margin-top:2px}
+nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav-section{font-size:9px;color:var(--text3);padding:12px 16px 4px;letter-spacing:1px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;border-right:2px solid transparent}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.04)}
+.nav-item.active{color:var(--orange);background:rgba(74,144,196,0.08);border-right-color:var(--orange);font-weight:500}
+.nav-item .icon{font-size:14px;width:18px;text-align:center}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.06)}
+.user-chip{display:flex;align-items:center;gap:8px}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:rgba(74,144,196,0.2);color:var(--orange);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.user-name{font-size:12px;color:var(--text);font-weight:500}
+.user-role{font-size:10px;color:var(--text3)}
+.btn-logout{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:4px}
+.btn-logout:hover{color:var(--red)}
+
+/* MAIN */
+.main{margin-left:var(--sidebar);flex:1;padding:28px;min-height:100vh}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-family:'DM Serif Display',serif;font-size:24px;color:var(--text);margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--text3);margin-bottom:24px}
+
+/* CARDS */
+.card{background:var(--dark2);border:1px solid rgba(255,255,255,0.07);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* METRICS */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.metric{background:var(--dark3);border-radius:var(--r);padding:14px}
+.metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.metric-val{font-size:22px;font-weight:600;color:var(--text)}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* BUTTONS */
+.btn{padding:8px 14px;border-radius:var(--r);border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s}
+.btn:hover{background:rgba(255,255,255,0.06);color:var(--text)}
+.btn-primary{background:var(--orange);color:#fff;border-color:var(--orange)}
+.btn-primary:hover{opacity:0.9}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-danger{color:#E07070;border-color:rgba(224,112,112,0.3)}
+.btn-danger:hover{background:rgba(224,112,112,0.1)}
+.btn-excel{color:#8ABB8A;border-color:rgba(90,138,90,0.3)}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.flex-end{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.mb{margin-bottom:14px}
+
+/* FORMS */
+label.fl{display:block;font-size:10px;color:var(--text3);margin-bottom:5px;margin-top:14px;letter-spacing:0.5px;text-transform:uppercase}
+label.fl:first-child{margin-top:0}
+input.f,select.f,textarea.f{width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;transition:border-color .2s}
+input.f:focus,select.f:focus,textarea.f:focus{outline:none;border-color:rgba(74,144,196,0.5)}
+select.f option{background:var(--dark2)}
+
+/* TABLES */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:9px 10px;font-size:10px;color:var(--text3);border-bottom:1px solid rgba(255,255,255,0.07);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:500}
+.badge-ok{background:rgba(90,138,90,0.2);color:#8ABB8A}
+.badge-warn{background:rgba(74,144,196,0.15);color:var(--orange)}
+.badge-danger{background:rgba(224,112,112,0.15);color:#E07070}
+.badge-gray{background:rgba(255,255,255,0.08);color:var(--text2)}
+.badge-blue{background:rgba(58,90,138,0.2);color:#8AABDD}
+
+/* RESPONSABLE CHIPS */
+.chip-paola{background:rgba(74,144,196,0.15);color:#B0D8F0;padding:2px 8px;border-radius:10px;font-size:10px}
+.chip-carolina{background:rgba(251,234,240,0.15);color:#ED93B1;padding:2px 8px;border-radius:10px;font-size:10px}
+.chip-camilo{background:rgba(230,241,251,0.15);color:#85B7EB;padding:2px 8px;border-radius:10px;font-size:10px}
+.chip-ruben{background:rgba(225,245,238,0.15);color:#5DCAA5;padding:2px 8px;border-radius:10px;font-size:10px}
+
+/* ALERT */
+.alert{padding:10px 14px;border-radius:var(--r);font-size:12px;margin-bottom:14px;display:none}
+.alert.show{display:block}
+.alert-ok{background:rgba(90,138,90,0.2);color:#8ABB8A;border:1px solid rgba(90,138,90,0.3)}
+.alert-err{background:rgba(224,112,112,0.15);color:#E07070;border:1px solid rgba(224,112,112,0.3)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--dark2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.07)}
+
+/* SEARCH */
+.search-bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+
+/* PROGBAR */
+.prog-bar{height:4px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:6px}
+.prog-fill{height:4px;border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Portafolio Turístico</div>
+    <div class="login-sub">Sistema de Gestión Empresarial</div>
+    <input type="text" id="lg-user" placeholder="Usuario" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" id="lg-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">Ingresar</button>
+    <div class="login-err" id="lg-err">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;flex-direction:row">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-name">Portafolio Turístico</div>
+      <div class="sidebar-logo-sub">Sistema de gestión</div>
+    </div>
+    <nav>
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="icon">◈</span> Dashboard</div>
+      <div class="nav-section">Unidades de negocio</div>
+      <div class="nav-item" onclick="showPage('grupos')" id="nav-grupos"><span class="icon">📅</span> Grupos y Eventos</div>
+      <div class="nav-item" onclick="showPage('rutas')" id="nav-rutas"><span class="icon">🛣</span> Rutas</div>
+      <div class="nav-item" onclick="showPage('viajes')" id="nav-viajes"><span class="icon">✈</span> Viajes / Agencia</div>
+      <div class="nav-section">Gestión</div>
+      <div class="nav-item" onclick="showPage('proveedores')" id="nav-proveedores"><span class="icon">🏢</span> Proveedores</div>
+      <div class="nav-item" onclick="showPage('nomina')" id="nav-nomina"><span class="icon">👥</span> Nómina</div>
+      <div class="nav-item" onclick="showPage('reportes')" id="nav-reportes"><span class="icon">📊</span> Reportes</div>
+      <div class="nav-item" onclick="showPage('usuarios')" id="nav-usuarios" style="display:none"><span class="icon">⚙</span> Usuarios</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="u-avatar">--</div>
+        <div><div class="user-name" id="u-name">—</div><div class="user-role" id="u-role">—</div></div>
+        <button class="btn-logout" onclick="doLogout()" title="Cerrar sesión">⏻</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Dashboard — Portafolio Turístico</div>
+      <div class="page-sub" id="dash-fecha-label">Cargando...</div>
+      <div class="grid4" style="margin-bottom:16px">
+        <div class="metric"><div class="metric-label">Ingresos del mes</div><div class="metric-val" style="color:var(--orange)" id="dash-ingresos">$0</div><div class="metric-sub">Todas las unidades</div></div>
+        <div class="metric"><div class="metric-label">Costos del mes</div><div class="metric-val" style="color:#E07070" id="dash-costos">$0</div><div class="metric-sub">Grupos + rutas + viajes</div></div>
+        <div class="metric"><div class="metric-label">Utilidad bruta</div><div class="metric-val" style="color:#8ABB8A" id="dash-utilidad">$0</div><div class="metric-sub" id="dash-margen">0% margen</div></div>
+        <div class="metric"><div class="metric-label">Personas movilizadas</div><div class="metric-val" id="dash-personas">0</div><div class="metric-sub">Este mes</div></div>
+      </div>
+      <div class="grid4" style="margin-bottom:16px">
+        <div class="metric"><div class="metric-label">Grupos este mes</div><div class="metric-val" id="dash-grupos">0</div></div>
+        <div class="metric"><div class="metric-label">Por cobrar</div><div class="metric-val" style="color:#E07070" id="dash-cobrar">$0</div></div>
+        <div class="metric"><div class="metric-label">Rutas este mes</div><div class="metric-val" id="dash-rutas">0</div></div>
+        <div class="metric"><div class="metric-label">Viajes agencia</div><div class="metric-val" id="dash-viajes">0</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Próximos eventos</div>
+          <div id="dash-proximos"><div style="color:var(--text3);font-size:12px">Sin eventos próximos</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Rendimiento por vendedor</div>
+          <div id="dash-vendedores"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Alertas</div>
+        <div id="dash-alertas"><div style="color:var(--text3);font-size:12px">Sin alertas</div></div>
+      </div>
+    </div>
+
+    <!-- GRUPOS Y EVENTOS -->
+    <div class="page" id="page-grupos">
+      <div class="flex-between">
+        <div><div class="page-title">Grupos y Eventos</div><div class="page-sub">Programación completa · Reemplaza el Excel</div></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-excel btn-sm" onclick="exportarGruposExcel()">↓ Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirNuevoGrupo()">+ Nuevo grupo</button>
+        </div>
+      </div>
+      <div id="alert-grupos" class="alert"></div>
+      <div class="grid5" style="margin-bottom:14px">
+        <div class="metric"><div class="metric-label">Grupos del mes</div><div class="metric-val" style="color:var(--orange)" id="g-count">0</div></div>
+        <div class="metric"><div class="metric-label">Personas</div><div class="metric-val" id="g-personas">0</div></div>
+        <div class="metric"><div class="metric-label">Facturado</div><div class="metric-val" style="color:#8ABB8A" id="g-facturado">$0</div></div>
+        <div class="metric"><div class="metric-label">Por cobrar</div><div class="metric-val" style="color:#E07070" id="g-cobrar">$0</div></div>
+        <div class="metric"><div class="metric-label">Utilidad grupos</div><div class="metric-val" style="color:var(--orange)" id="g-utilidad">$0</div></div>
+      </div>
+      <div class="card">
+        <div class="search-bar">
+          <input class="f" id="g-busq" type="text" placeholder="Buscar club, líder, destino..." oninput="renderGrupos()" style="flex:1">
+          <input type="month" class="f" id="g-mes" onchange="renderGrupos()" style="width:160px">
+          <select class="f" id="g-tipo" onchange="renderGrupos()" style="width:150px">
+            <option value="">Todos los tipos</option>
+            <option value="adulto_mayor">Adulto mayor</option>
+            <option value="empresa">Empresa</option>
+            <option value="finca">Alquiler finca</option>
+            <option value="otro">Otro</option>
+          </select>
+          <select class="f" id="g-estado" onchange="renderGrupos()" style="width:150px">
+            <option value="">Todos los estados</option>
+            <option value="por_confirmar">Por confirmar</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="realizado">Realizado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Club / Empresa</th><th>Líder</th><th>Responsable</th>
+              <th>Destino</th><th>Pers.</th><th>Valor/p</th><th>Total</th>
+              <th>Abono</th><th>Debe</th><th>Estado</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-grupos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RUTAS -->
+    <div class="page" id="page-rutas">
+      <div class="flex-between">
+        <div><div class="page-title">Rutas</div><div class="page-sub">Regionales y nacionales</div></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNuevaRuta()">+ Nueva ruta</button>
+      </div>
+      <div id="alert-rutas" class="alert"></div>
+      <div class="grid4" style="margin-bottom:14px">
+        <div class="metric"><div class="metric-label">Rutas del mes</div><div class="metric-val" id="r-count">0</div></div>
+        <div class="metric"><div class="metric-label">Personas</div><div class="metric-val" id="r-personas">0</div></div>
+        <div class="metric"><div class="metric-label">Facturado</div><div class="metric-val" style="color:#8ABB8A" id="r-facturado">$0</div></div>
+        <div class="metric"><div class="metric-label">Por cobrar</div><div class="metric-val" style="color:#E07070" id="r-cobrar">$0</div></div>
+      </div>
+      <div class="card">
+        <div class="search-bar">
+          <input class="f" id="r-busq" type="text" placeholder="Buscar destino, líder..." oninput="renderRutas()" style="flex:1">
+          <input type="month" class="f" id="r-mes" onchange="renderRutas()" style="width:160px">
+          <select class="f" id="r-tipo" onchange="renderRutas()" style="width:150px">
+            <option value="">Todos</option>
+            <option value="regional">Regional (1 día)</option>
+            <option value="nacional">Nacional (varios días)</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Destino</th><th>Tipo</th><th>Líder</th><th>Responsable</th>
+              <th>Pers.</th><th>Total</th><th>Abono</th><th>Debe</th><th>Estado</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-rutas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIAJES -->
+    <div class="page" id="page-viajes">
+      <div class="flex-between">
+        <div><div class="page-title">Viajes / Agencia</div><div class="page-sub">Ventas con mayorista · Comisión 8-12%</div></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNuevoViaje()">+ Nuevo viaje</button>
+      </div>
+      <div id="alert-viajes" class="alert"></div>
+      <div class="grid4" style="margin-bottom:14px">
+        <div class="metric"><div class="metric-label">Viajes del mes</div><div class="metric-val" id="v-count">0</div></div>
+        <div class="metric"><div class="metric-label">Ventas totales</div><div class="metric-val" id="v-ventas">$0</div></div>
+        <div class="metric"><div class="metric-label">Comisiones</div><div class="metric-val" style="color:#8ABB8A" id="v-comisiones">$0</div></div>
+        <div class="metric"><div class="metric-label">Promedio comisión</div><div class="metric-val" id="v-pct">0%</div></div>
+      </div>
+      <div class="card">
+        <div class="search-bar">
+          <input class="f" id="v-busq" type="text" placeholder="Buscar cliente, destino..." oninput="renderViajes()" style="flex:1">
+          <input type="month" class="f" id="v-mes" onchange="renderViajes()" style="width:160px">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Cliente</th><th>Destino</th><th>Tipo</th><th>Responsable</th>
+              <th>Valor venta</th><th>% Comisión</th><th>Comisión</th><th>Estado</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-viajes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROVEEDORES -->
+    <div class="page" id="page-proveedores">
+      <div class="flex-between">
+        <div><div class="page-title">Proveedores</div><div class="page-sub">Fincas, buses, restaurantes, guías</div></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>
+      </div>
+      <div id="alert-proveedores" class="alert"></div>
+      <div class="card">
+        <div class="search-bar">
+          <input class="f" id="prov-busq" type="text" placeholder="Buscar proveedor..." oninput="renderProveedores()" style="flex:1">
+          <select class="f" id="prov-tipo" onchange="renderProveedores()" style="width:160px">
+            <option value="">Todos los tipos</option>
+            <option value="finca">Finca</option>
+            <option value="transporte">Transporte</option>
+            <option value="restaurante">Restaurante</option>
+            <option value="guia">Guía</option>
+            <option value="recreacion">Recreación</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Nombre</th><th>Tipo</th><th>Contacto</th><th>Teléfono</th><th>Tarifa base</th><th>Notas</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-proveedores"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOMINA -->
+    <div class="page" id="page-nomina">
+      <div class="flex-between">
+        <div><div class="page-title">Nómina</div><div class="page-sub">15 empleados · Portafolio Turístico</div></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNuevoEmpleado()">+ Nuevo empleado</button>
+      </div>
+      <div id="alert-nomina" class="alert"></div>
+      <div class="grid4" style="margin-bottom:14px">
+        <div class="metric"><div class="metric-label">Empleados activos</div><div class="metric-val" id="n-count">0</div></div>
+        <div class="metric"><div class="metric-label">Nómina del mes</div><div class="metric-val" style="color:#E07070" id="n-total">$0</div></div>
+        <div class="metric"><div class="metric-label">Pagados</div><div class="metric-val" style="color:#8ABB8A" id="n-pagados">0</div></div>
+        <div class="metric"><div class="metric-label">Pendientes</div><div class="metric-val" style="color:var(--orange)" id="n-pendientes">0</div></div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Nombre</th><th>Cargo</th><th>Unidad</th><th>Salario base</th><th>Tipo contrato</th><th>Estado</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-nomina"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTES -->
+    <div class="page" id="page-reportes">
+      <div class="page-title">Reportes</div>
+      <div class="page-sub">Análisis consolidado de todas las unidades</div>
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-title">Ingresos por unidad</div>
+          <div id="rep-unidades"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Rendimiento vendedores</div>
+          <div id="rep-vendedores"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="flex-between mb">
+          <div class="card-title" style="margin:0">Grupos por destino</div>
+          <input type="month" class="f" id="rep-mes" onchange="renderReportes()" style="width:160px">
+        </div>
+        <div id="rep-destinos"></div>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="page" id="page-usuarios">
+      <div class="flex-between">
+        <div><div class="page-title">Usuarios</div><div class="page-sub">Gestión de accesos al sistema</div></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNuevoUsuario()">+ Nuevo usuario</button>
+      </div>
+      <div id="alert-usuarios" class="alert"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Unidad</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tbody-usuarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL NUEVO/EDITAR GRUPO -->
+<div class="modal-bg" id="modal-grupo">
+  <div class="modal" style="width:700px">
+    <div class="modal-title" id="modal-grupo-titulo">Nuevo Grupo</div>
+    <input type="hidden" id="g-id">
+    <div class="grid2">
+      <div>
+        <label class="fl" style="margin-top:0">Fecha *</label>
+        <input class="f" type="date" id="g-fecha">
+        <label class="fl">Club / Empresa *</label>
+        <input class="f" type="text" id="g-club" placeholder="Nombre del grupo">
+        <label class="fl">Líder</label>
+        <input class="f" type="text" id="g-lider" placeholder="Nombre del líder">
+        <label class="fl">Teléfono líder</label>
+        <input class="f" type="text" id="g-tel" placeholder="3100000000">
+        <label class="fl">Responsable (vendedor)</label>
+        <select class="f" id="g-resp">
+          <option value="">— Seleccionar —</option>
+          <option>Paola</option><option>Carolina</option><option>Camilo</option><option>Ruben</option>
+        </select>
+        <label class="fl">Tipo</label>
+        <select class="f" id="g-tipo-form">
+          <option value="adulto_mayor">Adulto mayor</option>
+          <option value="empresa">Empresa</option>
+          <option value="finca">Alquiler finca</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Programa / Destino *</label>
+        <input class="f" type="text" id="g-programa" placeholder="Masegal, La Villa, Selva del Río...">
+        <label class="fl">Comuna</label>
+        <input class="f" type="text" id="g-comuna" placeholder="C3, Bello...">
+        <label class="fl">Sector</label>
+        <input class="f" type="text" id="g-sector" placeholder="Manrique, San Javier...">
+        <label class="fl">Cantidad de personas</label>
+        <input class="f" type="number" id="g-cant" min="0" value="0" onchange="calcTotal()">
+        <label class="fl">Valor por persona ($)</label>
+        <input class="f" type="number" id="g-vlrp" min="0" value="0" onchange="calcTotal()">
+        <label class="fl">Transporte ($)</label>
+        <input class="f" type="number" id="g-transp" min="0" value="0">
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:10px">
+      <div>
+        <label class="fl" style="margin-top:0">Valor contrato ($)</label>
+        <input class="f" type="number" id="g-contrato" min="0" value="0" style="color:var(--orange)">
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Abono ($)</label>
+        <input class="f" type="number" id="g-abono" min="0" value="0" onchange="calcDebe()">
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Saldo ($)</label>
+        <input class="f" type="number" id="g-debe" min="0" value="0" style="color:#E07070">
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label class="fl">Dirección de recogida</label>
+        <input class="f" type="text" id="g-dir" placeholder="Dirección de salida">
+        <label class="fl">Hora de salida</label>
+        <input class="f" type="text" id="g-hora" placeholder="6:30 am">
+      </div>
+      <div>
+        <label class="fl">Recreación</label>
+        <input class="f" type="text" id="g-recr" placeholder="Responsable recreación">
+        <label class="fl">Estado</label>
+        <select class="f" id="g-estado-form">
+          <option value="por_confirmar">Por confirmar</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="realizado">Realizado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+    </div>
+    <label class="fl">Observaciones</label>
+    <textarea class="f" id="g-obs" rows="3" placeholder="Menú, notas especiales, etc."></textarea>
+    <div class="flex-end">
+      <button class="btn btn-danger btn-sm" id="btn-del-grupo" onclick="eliminarGrupo()" style="display:none">Eliminar</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-grupo')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarGrupo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COSTOS GRUPO -->
+<div class="modal-bg" id="modal-costos">
+  <div class="modal">
+    <div class="modal-title" id="modal-costos-titulo">Costos del evento</div>
+    <div id="costos-resumen" style="margin-bottom:16px;padding:10px;background:var(--dark3);border-radius:var(--r);font-size:12px"></div>
+    <div class="card-title">Registrar costo</div>
+    <div class="grid3">
+      <div>
+        <label class="fl" style="margin-top:0">Concepto</label>
+        <select class="f" id="c-concepto">
+          <option value="">— Seleccionar —</option>
+          <option>Arriendo finca</option>
+          <option>Transporte</option>
+          <option>Alimentación</option>
+          <option>Recreación</option>
+          <option>Guía</option>
+          <option>Seguro</option>
+          <option>Logística</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Proveedor</label>
+        <input class="f" type="text" id="c-prov" placeholder="Nombre del proveedor">
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Valor ($)</label>
+        <input class="f" type="number" id="c-valor" min="0" placeholder="0">
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label class="fl">Medio de pago</label>
+        <select class="f" id="c-medio">
+          <option value="">— Seleccionar —</option>
+          <option>Efectivo</option><option>Transferencia</option><option>Datáfono</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl">Fecha</label>
+        <input class="f" type="date" id="c-fecha">
+      </div>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-primary btn-sm" onclick="guardarCosto()">+ Agregar costo</button></div>
+    <div class="table-wrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Concepto</th><th>Proveedor</th><th>Valor</th><th>Medio pago</th><th></th></tr></thead>
+        <tbody id="tbody-costos"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;font-size:13px">
+      <span style="color:var(--text3)">Total costos</span>
+      <strong id="costos-total" style="color:#E07070">$0</strong>
+    </div>
+    <div class="flex-end"><button class="btn btn-sm" onclick="closeModal('modal-costos')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- MODAL RUTA -->
+<div class="modal-bg" id="modal-ruta">
+  <div class="modal">
+    <div class="modal-title" id="modal-ruta-titulo">Nueva Ruta</div>
+    <input type="hidden" id="ru-id">
+    <div class="grid2">
+      <div>
+        <label class="fl" style="margin-top:0">Fecha *</label>
+        <input class="f" type="date" id="ru-fecha">
+        <label class="fl">Destino *</label>
+        <input class="f" type="text" id="ru-destino" placeholder="Ciudad o lugar">
+        <label class="fl">Tipo</label>
+        <select class="f" id="ru-tipo">
+          <option value="regional">Regional (1 día)</option>
+          <option value="nacional">Nacional (varios días)</option>
+        </select>
+        <label class="fl">Líder</label>
+        <input class="f" type="text" id="ru-lider">
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Responsable</label>
+        <select class="f" id="ru-resp">
+          <option value="">— Seleccionar —</option>
+          <option>Paola</option><option>Carolina</option><option>Camilo</option><option>Ruben</option>
+        </select>
+        <label class="fl">Teléfono</label>
+        <input class="f" type="text" id="ru-tel">
+        <label class="fl">Cantidad personas</label>
+        <input class="f" type="number" id="ru-cant" min="0" value="0" onchange="calcTotalRuta()">
+        <label class="fl">Valor por persona ($)</label>
+        <input class="f" type="number" id="ru-vlrp" min="0" value="0" onchange="calcTotalRuta()">
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:10px">
+      <div><label class="fl" style="margin-top:0">Valor total ($)</label><input class="f" type="number" id="ru-total" style="color:var(--orange)"></div>
+      <div><label class="fl" style="margin-top:0">Abono ($)</label><input class="f" type="number" id="ru-abono" value="0" onchange="calcDebeRuta()"></div>
+      <div><label class="fl" style="margin-top:0">Saldo ($)</label><input class="f" type="number" id="ru-debe" style="color:#E07070"></div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label class="fl">Transporte ($)</label>
+        <input class="f" type="number" id="ru-transp" value="0">
+      </div>
+      <div>
+        <label class="fl">Estado</label>
+        <select class="f" id="ru-estado">
+          <option value="por_confirmar">Por confirmar</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="realizado">Realizado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+    </div>
+    <label class="fl">Observaciones</label>
+    <textarea class="f" id="ru-obs" rows="2"></textarea>
+    <div class="flex-end">
+      <button class="btn btn-danger btn-sm" id="btn-del-ruta" onclick="eliminarRuta()" style="display:none">Eliminar</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-ruta')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarRuta()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VIAJE -->
+<div class="modal-bg" id="modal-viaje">
+  <div class="modal">
+    <div class="modal-title" id="modal-viaje-titulo">Nuevo Viaje</div>
+    <input type="hidden" id="vj-id">
+    <div class="grid2">
+      <div>
+        <label class="fl" style="margin-top:0">Fecha *</label>
+        <input class="f" type="date" id="vj-fecha">
+        <label class="fl">Cliente *</label>
+        <input class="f" type="text" id="vj-cliente" placeholder="Nombre del cliente">
+        <label class="fl">Teléfono</label>
+        <input class="f" type="text" id="vj-tel">
+        <label class="fl">Destino *</label>
+        <input class="f" type="text" id="vj-destino" placeholder="Ciudad o país">
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Tipo</label>
+        <select class="f" id="vj-tipo">
+          <option value="nacional">Nacional</option>
+          <option value="internacional">Internacional</option>
+        </select>
+        <label class="fl">Responsable</label>
+        <select class="f" id="vj-resp">
+          <option value="">— Seleccionar —</option>
+          <option>Paola</option><option>Carolina</option><option>Camilo</option><option>Ruben</option>
+        </select>
+        <label class="fl">Valor venta ($)</label>
+        <input class="f" type="number" id="vj-venta" min="0" value="0" onchange="calcComision()">
+        <label class="fl">% Comisión</label>
+        <input class="f" type="number" id="vj-pct" min="0" max="100" value="10" onchange="calcComision()">
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label class="fl" style="margin-top:0">Comisión calculada ($)</label><input class="f" type="number" id="vj-comision" style="color:#8ABB8A" readonly></div>
+      <div>
+        <label class="fl" style="margin-top:0">Estado</label>
+        <select class="f" id="vj-estado">
+          <option value="por_confirmar">Por confirmar</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="realizado">Realizado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+    </div>
+    <label class="fl">Observaciones</label>
+    <textarea class="f" id="vj-obs" rows="2"></textarea>
+    <div class="flex-end">
+      <button class="btn btn-danger btn-sm" id="btn-del-viaje" onclick="eliminarViaje()" style="display:none">Eliminar</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-viaje')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarViaje()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROVEEDOR -->
+<div class="modal-bg" id="modal-proveedor">
+  <div class="modal">
+    <div class="modal-title" id="modal-prov-titulo">Nuevo Proveedor</div>
+    <input type="hidden" id="pv-id">
+    <div class="grid2">
+      <div>
+        <label class="fl" style="margin-top:0">Nombre *</label>
+        <input class="f" type="text" id="pv-nombre">
+        <label class="fl">Tipo</label>
+        <select class="f" id="pv-tipo">
+          <option value="finca">Finca</option>
+          <option value="transporte">Transporte</option>
+          <option value="restaurante">Restaurante</option>
+          <option value="guia">Guía</option>
+          <option value="recreacion">Recreación</option>
+          <option value="otro">Otro</option>
+        </select>
+        <label class="fl">Contacto</label>
+        <input class="f" type="text" id="pv-contacto">
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Teléfono</label>
+        <input class="f" type="text" id="pv-tel">
+        <label class="fl">Tarifa base ($)</label>
+        <input class="f" type="number" id="pv-tarifa" min="0" value="0">
+        <label class="fl">Notas</label>
+        <textarea class="f" id="pv-notas" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="flex-end">
+      <button class="btn btn-danger btn-sm" id="btn-del-prov" onclick="eliminarProveedor()" style="display:none">Eliminar</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-proveedor')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarProveedor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EMPLEADO -->
+<div class="modal-bg" id="modal-empleado">
+  <div class="modal">
+    <div class="modal-title" id="modal-emp-titulo">Nuevo Empleado</div>
+    <input type="hidden" id="em-id">
+    <div class="grid2">
+      <div>
+        <label class="fl" style="margin-top:0">Nombre completo *</label>
+        <input class="f" type="text" id="em-nombre">
+        <label class="fl">Cargo</label>
+        <input class="f" type="text" id="em-cargo" placeholder="Coordinador, Vendedor...">
+        <label class="fl">Unidad</label>
+        <select class="f" id="em-unidad">
+          <option value="general">General</option>
+          <option value="grupos">Grupos y Eventos</option>
+          <option value="hoteles">Hoteles</option>
+          <option value="rutas">Rutas</option>
+          <option value="viajes">Viajes</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Salario base ($)</label>
+        <input class="f" type="number" id="em-salario" min="0" value="0">
+        <label class="fl">Tipo contrato</label>
+        <select class="f" id="em-contrato">
+          <option value="fijo">Fijo</option>
+          <option value="prestacion">Prestación de servicios</option>
+          <option value="temporal">Temporal</option>
+        </select>
+        <label class="fl">Fecha ingreso</label>
+        <input class="f" type="date" id="em-fecha">
+      </div>
+    </div>
+    <div class="flex-end">
+      <button class="btn btn-danger btn-sm" id="btn-del-emp" onclick="eliminarEmpleado()" style="display:none">Eliminar</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-empleado')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarEmpleado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUARIO -->
+<div class="modal-bg" id="modal-usuario">
+  <div class="modal">
+    <div class="modal-title">Nuevo Usuario</div>
+    <input type="hidden" id="us-id">
+    <div class="grid2">
+      <div>
+        <label class="fl" style="margin-top:0">Usuario *</label>
+        <input class="f" type="text" id="us-user">
+        <label class="fl">Contraseña *</label>
+        <input class="f" type="password" id="us-pass">
+        <label class="fl">Nombre completo</label>
+        <input class="f" type="text" id="us-nombre">
+      </div>
+      <div>
+        <label class="fl" style="margin-top:0">Rol</label>
+        <select class="f" id="us-rol">
+          <option value="gerente">Gerente general</option>
+          <option value="admin">Administrador unidad</option>
+          <option value="vendedor">Vendedor</option>
+          <option value="contador">Contador</option>
+          <option value="consulta">Solo consulta</option>
+        </select>
+        <label class="fl">Unidad asignada</label>
+        <select class="f" id="us-unidad">
+          <option value="">Todas</option>
+          <option value="grupos">Grupos y Eventos</option>
+          <option value="hoteles">Hoteles</option>
+          <option value="rutas">Rutas</option>
+          <option value="viajes">Viajes</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex-end">
+      <button class="btn btn-sm" onclick="closeModal('modal-usuario')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarUsuario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL='https://gvqvjvljspuqpofipsqc.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2cXZqdmxqc3B1cXBvZmlwc3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMTYyNzksImV4cCI6MjA5MTY5MjI3OX0.OlmeV-XWT_A6NRtX9VlplnzgrmEm8PvZ9wkQ1fN7k3o';
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+const ROLES={gerente:'Gerente General',admin:'Admin Unidad',vendedor:'Vendedor',contador:'Contador',consulta:'Consulta'};
+let currentUser=null;
+let _grupos=[],_rutas=[],_viajes=[],_empleados=[],_proveedores=[];
+let _editGrupoId=null,_editRutaId=null,_editViajeId=null,_editProvId=null,_editEmpId=null;
+let _costosGrupoId=null;
+
+function fmt(n){return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(n||0)}
+function fmtD(s){if(!s)return'—';try{const[y,m,d]=String(s).split('T')[0].split('-');return`${d}/${m}/${y}`}catch(e){return s}}
+function today(){return new Date().toLocaleDateString('en-CA',{timeZone:'America/Bogota'})}
+function showAlert(id,msg,tipo='ok'){const el=document.getElementById(id);if(!el)return;el.className='alert show alert-'+tipo;el.textContent=msg;setTimeout(()=>el.classList.remove('show'),4000)}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function openModal(id){document.getElementById(id).classList.add('show')}
+
+// ── LOGIN ──
+async function doLogin(){
+  const u=document.getElementById('lg-user').value.trim();
+  const p=document.getElementById('lg-pass').value.trim();
+  if(!u||!p)return;
+  const {data}=await supa.from('usuarios').select('*').eq('usuario',u).eq('password',p).eq('activo',true).single();
+  if(data){
+    currentUser=data;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('u-avatar').textContent=(data.nombre||data.usuario).slice(0,2).toUpperCase();
+    document.getElementById('u-name').textContent=data.nombre||data.usuario;
+    document.getElementById('u-role').textContent=ROLES[data.rol]||data.rol;
+    if(data.rol==='gerente'||data.rol==='admin')document.getElementById('nav-usuarios').style.display='';
+    initApp();
+  } else {
+    document.getElementById('lg-err').style.display='block';
+  }
+}
+
+function doLogout(){
+  currentUser=null;
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('lg-user').value='';
+  document.getElementById('lg-pass').value='';
+  document.getElementById('lg-err').style.display='none';
+}
+
+// ── NAVIGATION ──
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const nav=document.getElementById('nav-'+p);
+  if(nav)nav.classList.add('active');
+  if(p==='dashboard')renderDashboard();
+  if(p==='grupos'){if(!document.getElementById('g-mes').value)document.getElementById('g-mes').value=today().slice(0,7);renderGrupos();}
+  if(p==='rutas'){if(!document.getElementById('r-mes').value)document.getElementById('r-mes').value=today().slice(0,7);renderRutas();}
+  if(p==='viajes'){if(!document.getElementById('v-mes').value)document.getElementById('v-mes').value=today().slice(0,7);renderViajes();}
+  if(p==='proveedores')renderProveedores();
+  if(p==='nomina')renderNomina();
+  if(p==='reportes'){if(!document.getElementById('rep-mes').value)document.getElementById('rep-mes').value=today().slice(0,7);renderReportes();}
+  if(p==='usuarios')renderUsuarios();
+}
+
+async function initApp(){
+  await Promise.all([loadGrupos(),loadRutas(),loadViajes(),loadEmpleados(),loadProveedores()]);
+  renderDashboard();
+}
+
+// ── LOAD DATA ──
+async function loadGrupos(){const{data}=await supa.from('grupos').select('*').order('fecha',{ascending:true});_grupos=data||[];}
+async function loadRutas(){const{data}=await supa.from('rutas').select('*').order('fecha',{ascending:true});_rutas=data||[];}
+async function loadViajes(){const{data}=await supa.from('viajes').select('*').order('fecha',{ascending:true});_viajes=data||[];}
+async function loadEmpleados(){const{data}=await supa.from('empleados').select('*').order('nombre');_empleados=data||[];}
+async function loadProveedores(){const{data}=await supa.from('proveedores').select('*').order('nombre');_proveedores=data||[];}
+
+// ── DASHBOARD ──
+async function renderDashboard(){
+  const mes=today().slice(0,7);
+  const[yr,mn]=mes.split('-');
+  const desde=`${yr}-${mn}-01`;
+  const hasta=`${yr}-${mn}-31`;
+  document.getElementById('dash-fecha-label').textContent=`${new Date().toLocaleDateString('es-CO',{month:'long',year:'numeric',timeZone:'America/Bogota'})} · ${ROLES[currentUser.rol]||currentUser.rol}`;
+
+  const gMes=_grupos.filter(g=>g.fecha&&g.fecha>=desde&&g.fecha<=hasta&&g.estado!=='cancelado');
+  const rMes=_rutas.filter(r=>r.fecha&&r.fecha>=desde&&r.fecha<=hasta&&r.estado!=='cancelado');
+  const vMes=_viajes.filter(v=>v.fecha&&v.fecha>=desde&&v.fecha<=hasta&&v.estado!=='cancelado');
+
+  const ingGrupos=gMes.reduce((s,g)=>s+(g.valor_contrato||0),0);
+  const ingRutas=rMes.reduce((s,r)=>s+(r.valor_contrato||0),0);
+  const ingViajes=vMes.reduce((s,v)=>s+(v.comision||0),0);
+  const totalIng=ingGrupos+ingRutas+ingViajes;
+
+  const cobrarGrupos=gMes.reduce((s,g)=>s+(g.debe||0),0);
+  const cobrarRutas=rMes.reduce((s,r)=>s+(r.debe||0),0);
+  const totalCobrar=cobrarGrupos+cobrarRutas;
+
+  const personas=gMes.reduce((s,g)=>s+(g.cantidad||0),0)+rMes.reduce((s,r)=>s+(r.cantidad||0),0);
+
+  document.getElementById('dash-ingresos').textContent=fmt(totalIng);
+  document.getElementById('dash-costos').textContent=fmt(0);
+  document.getElementById('dash-utilidad').textContent=fmt(totalIng);
+  document.getElementById('dash-margen').textContent='100% margen (sin costos registrados)';
+  document.getElementById('dash-personas').textContent=personas.toLocaleString('es-CO');
+  document.getElementById('dash-grupos').textContent=gMes.length;
+  document.getElementById('dash-cobrar').textContent=fmt(totalCobrar);
+  document.getElementById('dash-rutas').textContent=rMes.length;
+  document.getElementById('dash-viajes').textContent=vMes.length;
+
+  // Próximos eventos
+  const hoy=today();
+  const proximos=_grupos.filter(g=>g.fecha&&g.fecha>=hoy&&g.estado!=='cancelado'&&g.estado!=='realizado').slice(0,5);
+  const proxEl=document.getElementById('dash-proximos');
+  if(!proximos.length){proxEl.innerHTML='<div style="color:var(--text3);font-size:12px">Sin eventos próximos</div>';}
+  else{proxEl.innerHTML=proximos.map(g=>`
+    <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:500;font-size:12px">${g.club_empresa||'—'}</span>
+        ${estadoBadge(g.estado)}
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:10px">
+        <span>${fmtD(g.fecha)}</span>
+        <span>${g.cantidad||0} pers.</span>
+        <span>${g.programa||'—'}</span>
+        <span>${chipResp(g.responsable)}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${g.valor_contrato>0?Math.min(100,Math.round((g.abono||0)/(g.valor_contrato)*100)):0}%;background:${(g.abono||0)>=(g.valor_contrato||1)?'#5A8A5A':g.abono>0?'#87CEEB':'#8A4040'}"></div></div>
+    </div>`).join('');}
+
+  // Vendedores
+  const resp=['Paola','Carolina','Camilo','Ruben'];
+  const colors={Paola:'#FAC775',Carolina:'#ED93B1',Camilo:'#85B7EB',Ruben:'#5DCAA5'};
+  const vEl=document.getElementById('dash-vendedores');
+  vEl.innerHTML=resp.map(r=>{
+    const gs=gMes.filter(g=>g.responsable===r);
+    const total=gs.reduce((s,g)=>s+(g.valor_contrato||0),0);
+    return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${colors[r]}">${r.slice(0,2)}</div>
+        <span style="font-weight:500">${r}</span>
+      </div>
+      <div style="text-align:right">
+        <div style="color:${colors[r]};font-weight:500">${gs.length} grupos</div>
+        <div style="font-size:10px;color:var(--text3)">${fmt(total)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Alertas
+  const alertas=[];
+  const hoyDate=new Date(hoy);
+  _grupos.filter(g=>g.estado==='confirmado'||g.estado==='por_confirmar').forEach(g=>{
+    if(!g.fecha)return;
+    const diff=Math.ceil((new Date(g.fecha)-hoyDate)/(1000*60*60*24));
+    if(diff>=0&&diff<=3&&(g.debe||0)>0)alertas.push(`<div style="padding:6px 10px;background:rgba(224,112,112,0.1);border-left:3px solid #E07070;border-radius:4px;font-size:11px;margin-bottom:6px">⚠ <strong>${g.club_empresa}</strong> — evento en ${diff} día(s), saldo pendiente: ${fmt(g.debe)}</div>`);
+    if(diff>=0&&diff<=7&&!g.programa)alertas.push(`<div style="padding:6px 10px;background:rgba(74,144,196,0.1);border-left:3px solid var(--orange);border-radius:4px;font-size:11px;margin-bottom:6px">⚡ <strong>${g.club_empresa}</strong> — sin destino asignado</div>`);
+  });
+  document.getElementById('dash-alertas').innerHTML=alertas.length?alertas.join(''):'<div style="color:var(--text3);font-size:12px;padding:6px">Sin alertas urgentes</div>';
+}
+
+function estadoBadge(e){
+  const m={por_confirmar:['badge-gray','Por confirmar'],confirmado:['badge-ok','Confirmado'],realizado:['badge-blue','Realizado'],cancelado:['badge-danger','Cancelado']};
+  const[cls,label]=m[e]||['badge-gray',e||'—'];
+  return`<span class="badge ${cls}">${label}</span>`;
+}
+function chipResp(r){
+  const m={Paola:'chip-paola',Carolina:'chip-carolina',Camilo:'chip-camilo',Ruben:'chip-ruben'};
+  return r?`<span class="${m[r]||''}">${r}</span>`:'—';
+}
+
+// ── GRUPOS ──
+function renderGrupos(){
+  const q=(document.getElementById('g-busq').value||'').toLowerCase();
+  const mes=document.getElementById('g-mes').value;
+  const tipo=document.getElementById('g-tipo').value;
+  const estado=document.getElementById('g-estado').value;
+  let filtered=_grupos;
+  if(mes){const[yr,mn]=mes.split('-');const d=`${yr}-${mn}-01`;const h=`${yr}-${mn}-31`;filtered=filtered.filter(g=>g.fecha&&g.fecha>=d&&g.fecha<=h);}
+  if(tipo)filtered=filtered.filter(g=>g.tipo===tipo);
+  if(estado)filtered=filtered.filter(g=>g.estado===estado);
+  if(q)filtered=filtered.filter(g=>(g.club_empresa||'').toLowerCase().includes(q)||(g.lider||'').toLowerCase().includes(q)||(g.programa||'').toLowerCase().includes(q)||(g.responsable||'').toLowerCase().includes(q));
+
+  document.getElementById('g-count').textContent=filtered.length;
+  document.getElementById('g-personas').textContent=filtered.reduce((s,g)=>s+(g.cantidad||0),0).toLocaleString('es-CO');
+  document.getElementById('g-facturado').textContent=fmt(filtered.reduce((s,g)=>s+(g.valor_contrato||0),0));
+  document.getElementById('g-cobrar').textContent=fmt(filtered.reduce((s,g)=>s+(g.debe||0),0));
+  document.getElementById('g-utilidad').textContent='Por calcular';
+
+  const tb=document.getElementById('tbody-grupos');
+  if(!filtered.length){tb.innerHTML=`<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:2rem">Sin grupos registrados</td></tr>`;return;}
+  tb.innerHTML=filtered.map(g=>`<tr>
+    <td>${fmtD(g.fecha)}</td>
+    <td style="font-weight:500">${g.club_empresa||'—'}</td>
+    <td>${g.lider||'—'}</td>
+    <td>${chipResp(g.responsable)}</td>
+    <td>${g.programa||'—'}</td>
+    <td style="text-align:center">${g.cantidad||0}</td>
+    <td>${fmt(g.valor_persona)}</td>
+    <td style="font-weight:500">${fmt(g.valor_contrato)}</td>
+    <td style="color:#8ABB8A">${fmt(g.abono)}</td>
+    <td style="color:${(g.debe||0)>0?'#E07070':'#8ABB8A'}">${fmt(g.debe)}</td>
+    <td>${estadoBadge(g.estado)}</td>
+    <td style="display:flex;gap:4px;flex-wrap:nowrap">
+      <button class="btn btn-sm" onclick="abrirEditarGrupo(${g.id})">Ver</button>
+      <button class="btn btn-sm" style="color:#8AABDD;border-color:rgba(58,90,138,0.3)" onclick="abrirCostosGrupo(${g.id})">Costos</button>
+    </td>
+  </tr>`).join('');
+}
+
+function abrirNuevoGrupo(){
+  _editGrupoId=null;
+  document.getElementById('modal-grupo-titulo').textContent='Nuevo Grupo';
+  document.getElementById('btn-del-grupo').style.display='none';
+  ['g-id','g-club','g-lider','g-tel','g-programa','g-comuna','g-sector','g-dir','g-hora','g-recr','g-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['g-cant','g-vlrp','g-contrato','g-abono','g-debe','g-transp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=0;});
+  document.getElementById('g-fecha').value=today();
+  document.getElementById('g-resp').selectedIndex=0;
+  document.getElementById('g-tipo-form').selectedIndex=0;
+  document.getElementById('g-estado-form').selectedIndex=0;
+  openModal('modal-grupo');
+}
+
+function abrirEditarGrupo(id){
+  const g=_grupos.find(x=>x.id===id);if(!g)return;
+  _editGrupoId=id;
+  document.getElementById('modal-grupo-titulo').textContent='Editar Grupo';
+  document.getElementById('btn-del-grupo').style.display='';
+  document.getElementById('g-id').value=id;
+  document.getElementById('g-fecha').value=g.fecha||'';
+  document.getElementById('g-club').value=g.club_empresa||'';
+  document.getElementById('g-lider').value=g.lider||'';
+  document.getElementById('g-tel').value=g.telefono||'';
+  document.getElementById('g-resp').value=g.responsable||'';
+  document.getElementById('g-tipo-form').value=g.tipo||'adulto_mayor';
+  document.getElementById('g-programa').value=g.programa||'';
+  document.getElementById('g-comuna').value=g.comuna||'';
+  document.getElementById('g-sector').value=g.sector||'';
+  document.getElementById('g-cant').value=g.cantidad||0;
+  document.getElementById('g-vlrp').value=g.valor_persona||0;
+  document.getElementById('g-contrato').value=g.valor_contrato||0;
+  document.getElementById('g-transp').value=g.transporte||0;
+  document.getElementById('g-abono').value=g.abono||0;
+  document.getElementById('g-debe').value=g.debe||0;
+  document.getElementById('g-dir').value=g.direccion_recogida||'';
+  document.getElementById('g-hora').value=g.hora_salida||'';
+  document.getElementById('g-recr').value=g.recreacion||'';
+  document.getElementById('g-estado-form').value=g.estado||'por_confirmar';
+  document.getElementById('g-obs').value=g.observaciones||'';
+  openModal('modal-grupo');
+}
+
+function calcTotal(){
+  const c=parseFloat(document.getElementById('g-cant').value)||0;
+  const v=parseFloat(document.getElementById('g-vlrp').value)||0;
+  document.getElementById('g-contrato').value=c*v;
+  calcDebe();
+}
+function calcDebe(){
+  const total=parseFloat(document.getElementById('g-contrato').value)||0;
+  const abono=parseFloat(document.getElementById('g-abono').value)||0;
+  document.getElementById('g-debe').value=Math.max(0,total-abono);
+}
+
+async function guardarGrupo(){
+  const row={
+    fecha:document.getElementById('g-fecha').value,
+    club_empresa:document.getElementById('g-club').value.trim().toUpperCase(),
+    lider:document.getElementById('g-lider').value.trim().toUpperCase(),
+    telefono:document.getElementById('g-tel').value.trim(),
+    responsable:document.getElementById('g-resp').value,
+    tipo:document.getElementById('g-tipo-form').value,
+    programa:document.getElementById('g-programa').value.trim().toUpperCase(),
+    comuna:document.getElementById('g-comuna').value.trim(),
+    sector:document.getElementById('g-sector').value.trim(),
+    cantidad:parseInt(document.getElementById('g-cant').value)||0,
+    valor_persona:parseFloat(document.getElementById('g-vlrp').value)||0,
+    valor_contrato:parseFloat(document.getElementById('g-contrato').value)||0,
+    transporte:parseFloat(document.getElementById('g-transp').value)||0,
+    abono:parseFloat(document.getElementById('g-abono').value)||0,
+    debe:parseFloat(document.getElementById('g-debe').value)||0,
+    direccion_recogida:document.getElementById('g-dir').value.trim(),
+    hora_salida:document.getElementById('g-hora').value.trim(),
+    recreacion:document.getElementById('g-recr').value.trim(),
+    estado:document.getElementById('g-estado-form').value,
+    observaciones:document.getElementById('g-obs').value.trim(),
+    dia:['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'][new Date(document.getElementById('g-fecha').value).getDay()]||''
+  };
+  if(!row.fecha||!row.club_empresa){showAlert('alert-grupos','La fecha y el nombre del grupo son obligatorios.','err');return;}
+  let error;
+  if(_editGrupoId){const r=await supa.from('grupos').update(row).eq('id',_editGrupoId);error=r.error;}
+  else{const r=await supa.from('grupos').insert(row);error=r.error;}
+  if(!error){closeModal('modal-grupo');await loadGrupos();renderGrupos();renderDashboard();showAlert('alert-grupos','Grupo guardado correctamente.','ok');}
+  else{showAlert('alert-grupos','Error al guardar: '+error.message,'err');}
+}
+
+async function eliminarGrupo(){
+  if(!confirm('¿Eliminar este grupo?'))return;
+  await supa.from('costos_grupo').delete().eq('grupo_id',_editGrupoId);
+  await supa.from('grupos').delete().eq('id',_editGrupoId);
+  closeModal('modal-grupo');await loadGrupos();renderGrupos();renderDashboard();
+}
+
+// ── COSTOS GRUPO ──
+async function abrirCostosGrupo(id){
+  _costosGrupoId=id;
+  const g=_grupos.find(x=>x.id===id);
+  document.getElementById('modal-costos-titulo').textContent=`Costos — ${g?.club_empresa||'Grupo'}`;
+  document.getElementById('c-fecha').value=today();
+  document.getElementById('costos-resumen').innerHTML=`
+    <div style="display:flex;gap:20px">
+      <div><div style="color:var(--text3);font-size:10px;text-transform:uppercase">Ingreso</div><div style="color:#8ABB8A;font-weight:600">${fmt(g?.valor_contrato)}</div></div>
+      <div><div style="color:var(--text3);font-size:10px;text-transform:uppercase">Fecha</div><div style="font-weight:500">${fmtD(g?.fecha)}</div></div>
+      <div><div style="color:var(--text3);font-size:10px;text-transform:uppercase">Personas</div><div style="font-weight:500">${g?.cantidad||0}</div></div>
+      <div><div style="color:var(--text3);font-size:10px;text-transform:uppercase">Destino</div><div style="font-weight:500">${g?.programa||'—'}</div></div>
+    </div>`;
+  openModal('modal-costos');
+  await renderCostos();
+}
+
+async function renderCostos(){
+  const{data}=await supa.from('costos_grupo').select('*').eq('grupo_id',_costosGrupoId).order('created_at');
+  const costos=data||[];
+  const total=costos.reduce((s,c)=>s+(c.valor||0),0);
+  document.getElementById('costos-total').textContent=fmt(total);
+  const tb=document.getElementById('tbody-costos');
+  if(!costos.length){tb.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:1rem">Sin costos registrados</td></tr>`;return;}
+  tb.innerHTML=costos.map(c=>`<tr>
+    <td>${c.concepto||'—'}</td>
+    <td>${c.proveedor||'—'}</td>
+    <td style="color:#E07070;font-weight:500">${fmt(c.valor)}</td>
+    <td>${c.medio_pago||'—'}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="eliminarCosto(${c.id})">×</button></td>
+  </tr>`).join('');
+}
+
+async function guardarCosto(){
+  const concepto=document.getElementById('c-concepto').value;
+  const valor=parseFloat(document.getElementById('c-valor').value)||0;
+  if(!concepto||valor<=0){alert('Selecciona un concepto e ingresa un valor.');return;}
+  const row={grupo_id:_costosGrupoId,concepto,proveedor:document.getElementById('c-prov').value.trim(),valor,medio_pago:document.getElementById('c-medio').value||null,fecha:document.getElementById('c-fecha').value||today()};
+  await supa.from('costos_grupo').insert(row);
+  document.getElementById('c-valor').value='';
+  document.getElementById('c-prov').value='';
+  document.getElementById('c-concepto').selectedIndex=0;
+  await renderCostos();
+}
+
+async function eliminarCosto(id){
+  if(!confirm('¿Eliminar este costo?'))return;
+  await supa.from('costos_grupo').delete().eq('id',id);
+  await renderCostos();
+}
+
+async function exportarGruposExcel(){
+  const mes=document.getElementById('g-mes').value;
+  let data=_grupos;
+  if(mes){const[yr,mn]=mes.split('-');data=data.filter(g=>g.fecha&&g.fecha.startsWith(`${yr}-${mn}`));}
+  const h=['Fecha','Día','Club/Empresa','Líder','Responsable','Comuna','Sector','Teléfono','Programa','Tipo','Cantidad','Valor/pers','Total','Transporte','Abono','Debe','Recreación','Estado','Observaciones'];
+  const rows=data.map(g=>[fmtD(g.fecha),g.dia||'',g.club_empresa||'',g.lider||'',g.responsable||'',g.comuna||'',g.sector||'',g.telefono||'',g.programa||'',g.tipo||'',g.cantidad||0,g.valor_persona||0,g.valor_contrato||0,g.transporte||0,g.abono||0,g.debe||0,g.recreacion||'',g.estado||'',g.observaciones||'']);
+  const csv=h.join(',')+'\n'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download='grupos_'+(mes||today())+'.csv';a.click();
+}
+
+// ── RUTAS ──
+function renderRutas(){
+  const q=(document.getElementById('r-busq').value||'').toLowerCase();
+  const mes=document.getElementById('r-mes').value;
+  const tipo=document.getElementById('r-tipo').value;
+  let filtered=_rutas;
+  if(mes){const[yr,mn]=mes.split('-');filtered=filtered.filter(r=>r.fecha&&r.fecha.startsWith(`${yr}-${mn}`));}
+  if(tipo)filtered=filtered.filter(r=>r.tipo===tipo);
+  if(q)filtered=filtered.filter(r=>(r.destino||'').toLowerCase().includes(q)||(r.lider||'').toLowerCase().includes(q));
+  document.getElementById('r-count').textContent=filtered.length;
+  document.getElementById('r-personas').textContent=filtered.reduce((s,r)=>s+(r.cantidad||0),0).toLocaleString('es-CO');
+  document.getElementById('r-facturado').textContent=fmt(filtered.reduce((s,r)=>s+(r.valor_contrato||0),0));
+  document.getElementById('r-cobrar').textContent=fmt(filtered.reduce((s,r)=>s+(r.debe||0),0));
+  const tb=document.getElementById('tbody-rutas');
+  if(!filtered.length){tb.innerHTML=`<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:2rem">Sin rutas registradas</td></tr>`;return;}
+  tb.innerHTML=filtered.map(r=>`<tr>
+    <td>${fmtD(r.fecha)}</td>
+    <td style="font-weight:500">${r.destino||'—'}</td>
+    <td><span class="badge ${r.tipo==='nacional'?'badge-blue':'badge-gray'}">${r.tipo==='nacional'?'Nacional':'Regional'}</span></td>
+    <td>${r.lider||'—'}</td>
+    <td>${chipResp(r.responsable)}</td>
+    <td style="text-align:center">${r.cantidad||0}</td>
+    <td style="font-weight:500">${fmt(r.valor_contrato)}</td>
+    <td style="color:#8ABB8A">${fmt(r.abono)}</td>
+    <td style="color:${(r.debe||0)>0?'#E07070':'#8ABB8A'}">${fmt(r.debe)}</td>
+    <td>${estadoBadge(r.estado)}</td>
+    <td><button class="btn btn-sm" onclick="abrirEditarRuta(${r.id})">Ver</button></td>
+  </tr>`).join('');
+}
+
+function abrirNuevaRuta(){
+  _editRutaId=null;
+  document.getElementById('modal-ruta-titulo').textContent='Nueva Ruta';
+  document.getElementById('btn-del-ruta').style.display='none';
+  document.getElementById('ru-id').value='';
+  document.getElementById('ru-fecha').value=today();
+  ['ru-destino','ru-lider','ru-tel','ru-obs'].forEach(id=>document.getElementById(id).value='');
+  ['ru-cant','ru-vlrp','ru-total','ru-abono','ru-debe','ru-transp'].forEach(id=>document.getElementById(id).value=0);
+  document.getElementById('ru-resp').selectedIndex=0;
+  document.getElementById('ru-tipo').selectedIndex=0;
+  document.getElementById('ru-estado').selectedIndex=0;
+  openModal('modal-ruta');
+}
+
+function abrirEditarRuta(id){
+  const r=_rutas.find(x=>x.id===id);if(!r)return;
+  _editRutaId=id;
+  document.getElementById('modal-ruta-titulo').textContent='Editar Ruta';
+  document.getElementById('btn-del-ruta').style.display='';
+  document.getElementById('ru-id').value=id;
+  document.getElementById('ru-fecha').value=r.fecha||'';
+  document.getElementById('ru-destino').value=r.destino||'';
+  document.getElementById('ru-tipo').value=r.tipo||'regional';
+  document.getElementById('ru-lider').value=r.lider||'';
+  document.getElementById('ru-resp').value=r.responsable||'';
+  document.getElementById('ru-tel').value=r.telefono||'';
+  document.getElementById('ru-cant').value=r.cantidad||0;
+  document.getElementById('ru-vlrp').value=r.valor_persona||0;
+  document.getElementById('ru-total').value=r.valor_contrato||0;
+  document.getElementById('ru-abono').value=r.abono||0;
+  document.getElementById('ru-debe').value=r.debe||0;
+  document.getElementById('ru-transp').value=r.transporte||0;
+  document.getElementById('ru-estado').value=r.estado||'por_confirmar';
+  document.getElementById('ru-obs').value=r.observaciones||'';
+  openModal('modal-ruta');
+}
+
+function calcTotalRuta(){
+  const c=parseFloat(document.getElementById('ru-cant').value)||0;
+  const v=parseFloat(document.getElementById('ru-vlrp').value)||0;
+  document.getElementById('ru-total').value=c*v;
+  calcDebeRuta();
+}
+function calcDebeRuta(){
+  const t=parseFloat(document.getElementById('ru-total').value)||0;
+  const a=parseFloat(document.getElementById('ru-abono').value)||0;
+  document.getElementById('ru-debe').value=Math.max(0,t-a);
+}
+
+async function guardarRuta(){
+  const row={
+    fecha:document.getElementById('ru-fecha').value,
+    destino:document.getElementById('ru-destino').value.trim().toUpperCase(),
+    tipo:document.getElementById('ru-tipo').value,
+    lider:document.getElementById('ru-lider').value.trim().toUpperCase(),
+    responsable:document.getElementById('ru-resp').value,
+    telefono:document.getElementById('ru-tel').value.trim(),
+    cantidad:parseInt(document.getElementById('ru-cant').value)||0,
+    valor_persona:parseFloat(document.getElementById('ru-vlrp').value)||0,
+    valor_contrato:parseFloat(document.getElementById('ru-total').value)||0,
+    abono:parseFloat(document.getElementById('ru-abono').value)||0,
+    debe:parseFloat(document.getElementById('ru-debe').value)||0,
+    transporte:parseFloat(document.getElementById('ru-transp').value)||0,
+    estado:document.getElementById('ru-estado').value,
+    observaciones:document.getElementById('ru-obs').value.trim()
+  };
+  if(!row.fecha||!row.destino){showAlert('alert-rutas','La fecha y destino son obligatorios.','err');return;}
+  let error;
+  if(_editRutaId){const r=await supa.from('rutas').update(row).eq('id',_editRutaId);error=r.error;}
+  else{const r=await supa.from('rutas').insert(row);error=r.error;}
+  if(!error){closeModal('modal-ruta');await loadRutas();renderRutas();renderDashboard();}
+  else{showAlert('alert-rutas','Error: '+error.message,'err');}
+}
+
+async function eliminarRuta(){
+  if(!confirm('¿Eliminar esta ruta?'))return;
+  await supa.from('rutas').delete().eq('id',_editRutaId);
+  closeModal('modal-ruta');await loadRutas();renderRutas();renderDashboard();
+}
+
+// ── VIAJES ──
+function calcComision(){
+  const v=parseFloat(document.getElementById('vj-venta').value)||0;
+  const p=parseFloat(document.getElementById('vj-pct').value)||0;
+  document.getElementById('vj-comision').value=Math.round(v*(p/100));
+}
+
+function renderViajes(){
+  const q=(document.getElementById('v-busq').value||'').toLowerCase();
+  const mes=document.getElementById('v-mes').value;
+  let filtered=_viajes;
+  if(mes){const[yr,mn]=mes.split('-');filtered=filtered.filter(v=>v.fecha&&v.fecha.startsWith(`${yr}-${mn}`));}
+  if(q)filtered=filtered.filter(v=>(v.cliente||'').toLowerCase().includes(q)||(v.destino||'').toLowerCase().includes(q));
+  document.getElementById('v-count').textContent=filtered.length;
+  document.getElementById('v-ventas').textContent=fmt(filtered.reduce((s,v)=>s+(v.valor_venta||0),0));
+  document.getElementById('v-comisiones').textContent=fmt(filtered.reduce((s,v)=>s+(v.comision||0),0));
+  const totalV=filtered.reduce((s,v)=>s+(v.valor_venta||0),0);
+  const totalC=filtered.reduce((s,v)=>s+(v.comision||0),0);
+  document.getElementById('v-pct').textContent=totalV>0?Math.round(totalC/totalV*100)+'%':'0%';
+  const tb=document.getElementById('tbody-viajes');
+  if(!filtered.length){tb.innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:2rem">Sin viajes registrados</td></tr>`;return;}
+  tb.innerHTML=filtered.map(v=>`<tr>
+    <td>${fmtD(v.fecha)}</td>
+    <td style="font-weight:500">${v.cliente||'—'}</td>
+    <td>${v.destino||'—'}</td>
+    <td><span class="badge ${v.tipo==='internacional'?'badge-blue':'badge-gray'}">${v.tipo==='internacional'?'Internacional':'Nacional'}</span></td>
+    <td>${chipResp(v.responsable)}</td>
+    <td>${fmt(v.valor_venta)}</td>
+    <td style="text-align:center">${v.pct_comision||0}%</td>
+    <td style="color:#8ABB8A;font-weight:500">${fmt(v.comision)}</td>
+    <td>${estadoBadge(v.estado)}</td>
+    <td><button class="btn btn-sm" onclick="abrirEditarViaje(${v.id})">Ver</button></td>
+  </tr>`).join('');
+}
+
+function abrirNuevoViaje(){
+  _editViajeId=null;
+  document.getElementById('modal-viaje-titulo').textContent='Nuevo Viaje';
+  document.getElementById('btn-del-viaje').style.display='none';
+  document.getElementById('vj-id').value='';
+  document.getElementById('vj-fecha').value=today();
+  ['vj-cliente','vj-tel','vj-destino','vj-obs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('vj-venta').value=0;
+  document.getElementById('vj-pct').value=10;
+  document.getElementById('vj-comision').value=0;
+  document.getElementById('vj-resp').selectedIndex=0;
+  document.getElementById('vj-tipo').selectedIndex=0;
+  document.getElementById('vj-estado').selectedIndex=0;
+  openModal('modal-viaje');
+}
+
+function abrirEditarViaje(id){
+  const v=_viajes.find(x=>x.id===id);if(!v)return;
+  _editViajeId=id;
+  document.getElementById('modal-viaje-titulo').textContent='Editar Viaje';
+  document.getElementById('btn-del-viaje').style.display='';
+  document.getElementById('vj-id').value=id;
+  document.getElementById('vj-fecha').value=v.fecha||'';
+  document.getElementById('vj-cliente').value=v.cliente||'';
+  document.getElementById('vj-tel').value=v.telefono||'';
+  document.getElementById('vj-destino').value=v.destino||'';
+  document.getElementById('vj-tipo').value=v.tipo||'nacional';
+  document.getElementById('vj-resp').value=v.responsable||'';
+  document.getElementById('vj-venta').value=v.valor_venta||0;
+  document.getElementById('vj-pct').value=v.pct_comision||10;
+  document.getElementById('vj-comision').value=v.comision||0;
+  document.getElementById('vj-estado').value=v.estado||'por_confirmar';
+  document.getElementById('vj-obs').value=v.observaciones||'';
+  openModal('modal-viaje');
+}
+
+async function guardarViaje(){
+  const row={
+    fecha:document.getElementById('vj-fecha').value,
+    cliente:document.getElementById('vj-cliente').value.trim().toUpperCase(),
+    telefono:document.getElementById('vj-tel').value.trim(),
+    destino:document.getElementById('vj-destino').value.trim().toUpperCase(),
+    tipo:document.getElementById('vj-tipo').value,
+    responsable:document.getElementById('vj-resp').value,
+    valor_venta:parseFloat(document.getElementById('vj-venta').value)||0,
+    pct_comision:parseFloat(document.getElementById('vj-pct').value)||10,
+    comision:parseFloat(document.getElementById('vj-comision').value)||0,
+    estado:document.getElementById('vj-estado').value,
+    observaciones:document.getElementById('vj-obs').value.trim()
+  };
+  if(!row.fecha||!row.cliente){showAlert('alert-viajes','La fecha y cliente son obligatorios.','err');return;}
+  let error;
+  if(_editViajeId){const r=await supa.from('viajes').update(row).eq('id',_editViajeId);error=r.error;}
+  else{const r=await supa.from('viajes').insert(row);error=r.error;}
+  if(!error){closeModal('modal-viaje');await loadViajes();renderViajes();renderDashboard();}
+  else{showAlert('alert-viajes','Error: '+error.message,'err');}
+}
+
+async function eliminarViaje(){
+  if(!confirm('¿Eliminar este viaje?'))return;
+  await supa.from('viajes').delete().eq('id',_editViajeId);
+  closeModal('modal-viaje');await loadViajes();renderViajes();renderDashboard();
+}
+
+// ── PROVEEDORES ──
+function renderProveedores(){
+  const q=(document.getElementById('prov-busq').value||'').toLowerCase();
+  const tipo=document.getElementById('prov-tipo').value;
+  let filtered=_proveedores;
+  if(tipo)filtered=filtered.filter(p=>p.tipo===tipo);
+  if(q)filtered=filtered.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.contacto||'').toLowerCase().includes(q));
+  const tb=document.getElementById('tbody-proveedores');
+  if(!filtered.length){tb.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:2rem">Sin proveedores registrados</td></tr>`;return;}
+  const tipoLabel={finca:'Finca',transporte:'Transporte',restaurante:'Restaurante',guia:'Guía',recreacion:'Recreación',otro:'Otro'};
+  tb.innerHTML=filtered.map(p=>`<tr>
+    <td style="font-weight:500">${p.nombre||'—'}</td>
+    <td><span class="badge badge-gray">${tipoLabel[p.tipo]||p.tipo||'—'}</span></td>
+    <td>${p.contacto||'—'}</td>
+    <td>${p.telefono||'—'}</td>
+    <td>${p.tarifa_base>0?fmt(p.tarifa_base):'—'}</td>
+    <td style="color:var(--text3);font-size:11px">${p.notas||'—'}</td>
+    <td><button class="btn btn-sm" onclick="abrirEditarProveedor(${p.id})">Ver</button></td>
+  </tr>`).join('');
+}
+
+function abrirNuevoProveedor(){
+  _editProvId=null;
+  document.getElementById('modal-prov-titulo').textContent='Nuevo Proveedor';
+  document.getElementById('btn-del-prov').style.display='none';
+  document.getElementById('pv-id').value='';
+  ['pv-nombre','pv-contacto','pv-tel','pv-notas'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pv-tarifa').value=0;
+  document.getElementById('pv-tipo').selectedIndex=0;
+  openModal('modal-proveedor');
+}
+
+function abrirEditarProveedor(id){
+  const p=_proveedores.find(x=>x.id===id);if(!p)return;
+  _editProvId=id;
+  document.getElementById('modal-prov-titulo').textContent='Editar Proveedor';
+  document.getElementById('btn-del-prov').style.display='';
+  document.getElementById('pv-id').value=id;
+  document.getElementById('pv-nombre').value=p.nombre||'';
+  document.getElementById('pv-tipo').value=p.tipo||'finca';
+  document.getElementById('pv-contacto').value=p.contacto||'';
+  document.getElementById('pv-tel').value=p.telefono||'';
+  document.getElementById('pv-tarifa').value=p.tarifa_base||0;
+  document.getElementById('pv-notas').value=p.notas||'';
+  openModal('modal-proveedor');
+}
+
+async function guardarProveedor(){
+  const row={nombre:document.getElementById('pv-nombre').value.trim().toUpperCase(),tipo:document.getElementById('pv-tipo').value,contacto:document.getElementById('pv-contacto').value.trim(),telefono:document.getElementById('pv-tel').value.trim(),tarifa_base:parseFloat(document.getElementById('pv-tarifa').value)||0,notas:document.getElementById('pv-notas').value.trim()};
+  if(!row.nombre){showAlert('alert-proveedores','El nombre es obligatorio.','err');return;}
+  let error;
+  if(_editProvId){const r=await supa.from('proveedores').update(row).eq('id',_editProvId);error=r.error;}
+  else{const r=await supa.from('proveedores').insert(row);error=r.error;}
+  if(!error){closeModal('modal-proveedor');await loadProveedores();renderProveedores();}
+  else{showAlert('alert-proveedores','Error: '+error.message,'err');}
+}
+
+async function eliminarProveedor(){
+  if(!confirm('¿Eliminar este proveedor?'))return;
+  await supa.from('proveedores').delete().eq('id',_editProvId);
+  closeModal('modal-proveedor');await loadProveedores();renderProveedores();
+}
+
+// ── NÓMINA ──
+function renderNomina(){
+  const activos=_empleados.filter(e=>e.activo);
+  document.getElementById('n-count').textContent=activos.length;
+  document.getElementById('n-total').textContent=fmt(activos.reduce((s,e)=>s+(e.salario_base||0),0));
+  document.getElementById('n-pagados').textContent='—';
+  document.getElementById('n-pendientes').textContent='—';
+  const tb=document.getElementById('tbody-nomina');
+  if(!_empleados.length){tb.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:2rem">Sin empleados registrados</td></tr>`;return;}
+  const unidadLabel={general:'General',grupos:'Grupos',hoteles:'Hoteles',rutas:'Rutas',viajes:'Viajes'};
+  const contratoLabel={fijo:'Fijo',prestacion:'Prestación',temporal:'Temporal'};
+  tb.innerHTML=_empleados.map(e=>`<tr>
+    <td style="font-weight:500">${e.nombre||'—'}</td>
+    <td>${e.cargo||'—'}</td>
+    <td><span class="badge badge-gray">${unidadLabel[e.unidad]||e.unidad||'—'}</span></td>
+    <td style="font-weight:500">${fmt(e.salario_base)}</td>
+    <td>${contratoLabel[e.tipo_contrato]||e.tipo_contrato||'—'}</td>
+    <td><span class="badge ${e.activo?'badge-ok':'badge-danger'}">${e.activo?'Activo':'Inactivo'}</span></td>
+    <td><button class="btn btn-sm" onclick="abrirEditarEmpleado(${e.id})">Ver</button></td>
+  </tr>`).join('');
+}
+
+function abrirNuevoEmpleado(){
+  _editEmpId=null;
+  document.getElementById('modal-emp-titulo').textContent='Nuevo Empleado';
+  document.getElementById('btn-del-emp').style.display='none';
+  document.getElementById('em-id').value='';
+  ['em-nombre','em-cargo','em-fecha'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('em-salario').value=0;
+  document.getElementById('em-unidad').selectedIndex=0;
+  document.getElementById('em-contrato').selectedIndex=0;
+  openModal('modal-empleado');
+}
+
+function abrirEditarEmpleado(id){
+  const e=_empleados.find(x=>x.id===id);if(!e)return;
+  _editEmpId=id;
+  document.getElementById('modal-emp-titulo').textContent='Editar Empleado';
+  document.getElementById('btn-del-emp').style.display='';
+  document.getElementById('em-id').value=id;
+  document.getElementById('em-nombre').value=e.nombre||'';
+  document.getElementById('em-cargo').value=e.cargo||'';
+  document.getElementById('em-unidad').value=e.unidad||'general';
+  document.getElementById('em-salario').value=e.salario_base||0;
+  document.getElementById('em-contrato').value=e.tipo_contrato||'fijo';
+  document.getElementById('em-fecha').value=e.fecha_ingreso||'';
+  openModal('modal-empleado');
+}
+
+async function guardarEmpleado(){
+  const row={nombre:document.getElementById('em-nombre').value.trim().toUpperCase(),cargo:document.getElementById('em-cargo').value.trim(),unidad:document.getElementById('em-unidad').value,salario_base:parseFloat(document.getElementById('em-salario').value)||0,tipo_contrato:document.getElementById('em-contrato').value,fecha_ingreso:document.getElementById('em-fecha').value||null,activo:true};
+  if(!row.nombre){showAlert('alert-nomina','El nombre es obligatorio.','err');return;}
+  let error;
+  if(_editEmpId){const r=await supa.from('empleados').update(row).eq('id',_editEmpId);error=r.error;}
+  else{const r=await supa.from('empleados').insert(row);error=r.error;}
+  if(!error){closeModal('modal-empleado');await loadEmpleados();renderNomina();}
+  else{showAlert('alert-nomina','Error: '+error.message,'err');}
+}
+
+async function eliminarEmpleado(){
+  if(!confirm('¿Eliminar este empleado?'))return;
+  await supa.from('empleados').update({activo:false}).eq('id',_editEmpId);
+  closeModal('modal-empleado');await loadEmpleados();renderNomina();
+}
+
+// ── REPORTES ──
+function renderReportes(){
+  const mes=document.getElementById('rep-mes').value;
+  if(!mes)return;
+  const[yr,mn]=mes.split('-');
+  const d=`${yr}-${mn}-01`;const h=`${yr}-${mn}-31`;
+  const gMes=_grupos.filter(g=>g.fecha&&g.fecha>=d&&g.fecha<=h&&g.estado!=='cancelado');
+  const rMes=_rutas.filter(r=>r.fecha&&r.fecha>=d&&r.fecha<=h&&r.estado!=='cancelado');
+  const vMes=_viajes.filter(v=>v.fecha&&v.fecha>=d&&v.fecha<=h&&v.estado!=='cancelado');
+
+  // Por unidad
+  const unidades=[
+    {nombre:'Grupos adulto mayor',val:gMes.filter(g=>g.tipo==='adulto_mayor').reduce((s,g)=>s+(g.valor_contrato||0),0)},
+    {nombre:'Grupos empresas',val:gMes.filter(g=>g.tipo==='empresa').reduce((s,g)=>s+(g.valor_contrato||0),0)},
+    {nombre:'Alquiler fincas',val:gMes.filter(g=>g.tipo==='finca').reduce((s,g)=>s+(g.valor_contrato||0),0)},
+    {nombre:'Rutas regionales',val:rMes.filter(r=>r.tipo==='regional').reduce((s,r)=>s+(r.valor_contrato||0),0)},
+    {nombre:'Rutas nacionales',val:rMes.filter(r=>r.tipo==='nacional').reduce((s,r)=>s+(r.valor_contrato||0),0)},
+    {nombre:'Viajes / Agencia',val:vMes.reduce((s,v)=>s+(v.comision||0),0)},
+  ].sort((a,b)=>b.val-a.val);
+  const maxU=Math.max(...unidades.map(u=>u.val),1);
+  document.getElementById('rep-unidades').innerHTML=unidades.map(u=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:var(--text)">${u.nombre}</span>
+        <span style="font-weight:500;color:var(--orange)">${fmt(u.val)}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.round(u.val/maxU*100)}%;background:var(--orange)"></div></div>
+    </div>`).join('');
+
+  // Por vendedor
+  const resp=['Paola','Carolina','Camilo','Ruben'];
+  const colors={Paola:'#FAC775',Carolina:'#ED93B1',Camilo:'#85B7EB',Ruben:'#5DCAA5'};
+  const vendData=resp.map(r=>({nombre:r,grupos:gMes.filter(g=>g.responsable===r).length,total:gMes.filter(g=>g.responsable===r).reduce((s,g)=>s+(g.valor_contrato||0),0)+rMes.filter(x=>x.responsable===r).reduce((s,x)=>s+(x.valor_contrato||0),0)+vMes.filter(x=>x.responsable===r).reduce((s,x)=>s+(x.comision||0),0)})).sort((a,b)=>b.total-a.total);
+  const maxV=Math.max(...vendData.map(v=>v.total),1);
+  document.getElementById('rep-vendedores').innerHTML=vendData.map(v=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:${colors[v.nombre]};font-weight:500">${v.nombre} (${v.grupos} grupos)</span>
+        <span style="font-weight:500">${fmt(v.total)}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.round(v.total/maxV*100)}%;background:${colors[v.nombre]}"></div></div>
+    </div>`).join('');
+
+  // Por destino
+  const destinos={};
+  gMes.forEach(g=>{if(g.programa){destinos[g.programa]=(destinos[g.programa]||0)+1;}});
+  const destArr=Object.entries(destinos).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('rep-destinos').innerHTML=destArr.length?
+    destArr.map(([d,c])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px"><span style="color:var(--text)">${d}</span><span style="color:var(--orange);font-weight:500">${c} grupos</span></div>`).join(''):
+    '<div style="color:var(--text3);font-size:12px">Sin datos para el mes seleccionado</div>';
+}
+
+// ── USUARIOS ──
+async function renderUsuarios(){
+  const{data}=await supa.from('usuarios').select('*').order('nombre');
+  const tb=document.getElementById('tbody-usuarios');
+  if(!data||!data.length){tb.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:2rem">Sin usuarios</td></tr>`;return;}
+  tb.innerHTML=data.map(u=>`<tr>
+    <td style="font-weight:500">${u.usuario}</td>
+    <td>${u.nombre||'—'}</td>
+    <td><span class="badge badge-blue">${ROLES[u.rol]||u.rol}</span></td>
+    <td>${u.unidad||'Todas'}</td>
+    <td><span class="badge ${u.activo?'badge-ok':'badge-danger'}">${u.activo?'Activo':'Inactivo'}</span></td>
+    <td><button class="btn btn-sm" onclick="alert('Edición de usuarios próximamente')">Ver</button></td>
+  </tr>`).join('');
+}
+
+function abrirNuevoUsuario(){
+  document.getElementById('us-id').value='';
+  ['us-user','us-pass','us-nombre'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('us-rol').selectedIndex=0;
+  document.getElementById('us-unidad').selectedIndex=0;
+  openModal('modal-usuario');
+}
+
+async function guardarUsuario(){
+  const usuario=document.getElementById('us-user').value.trim().toLowerCase();
+  const password=document.getElementById('us-pass').value.trim();
+  const nombre=document.getElementById('us-nombre').value.trim();
+  const rol=document.getElementById('us-rol').value;
+  const unidad=document.getElementById('us-unidad').value||null;
+  if(!usuario||!password){showAlert('alert-usuarios','Usuario y contraseña son obligatorios.','err');return;}
+  const{error}=await supa.from('usuarios').insert({usuario,password,nombre,rol,unidad,activo:true});
+  if(!error){closeModal('modal-usuario');renderUsuarios();showAlert('alert-usuarios','Usuario creado correctamente.','ok');}
+  else{showAlert('alert-usuarios','Error: '+error.message,'err');}
+}
+
+// ── INIT ──
+window.onload=()=>{
+  document.getElementById('lg-user').focus();
+};
+</script>
+</body>
+</html>
