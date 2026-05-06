@@ -153,6 +153,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <nav>
       <div class="nav-section">Principal</div>
       <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="icon">◈</span> Dashboard</div>
+      <div class="nav-item" onclick="showPage('calendario')" id="nav-calendario"><span class="icon">🗓</span> Calendario</div>
       <div class="nav-section">Unidades de negocio</div>
       <div class="nav-item" onclick="showPage('grupos')" id="nav-grupos"><span class="icon">📅</span> Grupos y Eventos</div>
       <div class="nav-item" onclick="showPage('rutas')" id="nav-rutas"><span class="icon">🛣</span> Rutas</div>
@@ -414,6 +415,47 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           </table>
         </div>
       </div>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div class="page" id="page-calendario">
+      <div class="flex-between" style="margin-bottom:16px">
+        <div>
+          <div class="page-title">Calendario</div>
+          <div class="page-sub" id="cal-label">Todos los eventos · Grupos, Rutas y Viajes</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-sm" id="cal-filter-grupos" onclick="calToggleFilter('grupos')" style="color:#FAC775;border-color:rgba(250,199,117,0.4)">● Grupos</button>
+            <button class="btn btn-sm" id="cal-filter-rutas" onclick="calToggleFilter('rutas')" style="color:#5DCAA5;border-color:rgba(93,202,165,0.4)">● Rutas</button>
+            <button class="btn btn-sm" id="cal-filter-viajes" onclick="calToggleFilter('viajes')" style="color:#85B7EB;border-color:rgba(133,183,235,0.4)">● Viajes</button>
+          </div>
+          <button class="btn btn-sm" onclick="calMes(-1)">‹</button>
+          <span id="cal-mes-label" style="font-size:13px;font-weight:500;color:var(--text);min-width:130px;text-align:center"></span>
+          <button class="btn btn-sm" onclick="calMes(+1)">›</button>
+          <button class="btn btn-sm btn-primary" onclick="calHoy()">Hoy</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#87CEEB;display:inline-block"></span>Por confirmar</span>
+        <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#4A90C4;display:inline-block"></span>Confirmado</span>
+        <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#5A8A5A;display:inline-block"></span>Realizado</span>
+        <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#8A4040;display:inline-block"></span>Cancelado</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:6px">G = Grupo · R = Ruta · V = Viaje</span>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid rgba(255,255,255,0.07)">
+          <div style="padding:8px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Dom</div>
+          <div style="padding:8px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Lun</div>
+          <div style="padding:8px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Mar</div>
+          <div style="padding:8px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Mié</div>
+          <div style="padding:8px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Jue</div>
+          <div style="padding:8px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Vie</div>
+          <div style="padding:8px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Sáb</div>
+        </div>
+        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr)"></div>
+      </div>
+      <div id="cal-detalle" style="display:none;margin-top:14px"></div>
     </div>
 
   </div>
@@ -807,7 +849,7 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const ROLES={gerente:'Gerente General',admin:'Admin Unidad',vendedor:'Vendedor',contador:'Contador',consulta:'Consulta'};
 let currentUser=null;
-let _grupos=[],_rutas=[],_viajes=[],_empleados=[],_proveedores=[];
+let _grupos=[],_rutas=[],_viajes=[],_empleados=[],_proveedores=[],_costosMes=[];
 let _editGrupoId=null,_editRutaId=null,_editViajeId=null,_editProvId=null,_editEmpId=null;
 let _costosGrupoId=null;
 
@@ -862,10 +904,12 @@ function showPage(p){
   if(p==='nomina')renderNomina();
   if(p==='reportes'){if(!document.getElementById('rep-mes').value)document.getElementById('rep-mes').value=today().slice(0,7);renderReportes();}
   if(p==='usuarios')renderUsuarios();
+  if(p==='calendario')renderCalendario();
 }
 
 async function initApp(){
   await Promise.all([loadGrupos(),loadRutas(),loadViajes(),loadEmpleados(),loadProveedores()]);
+  await loadCostosMes();
   renderDashboard();
 }
 
@@ -875,6 +919,16 @@ async function loadRutas(){const{data}=await supa.from('rutas').select('*').orde
 async function loadViajes(){const{data}=await supa.from('viajes').select('*').order('fecha',{ascending:true});_viajes=data||[];}
 async function loadEmpleados(){const{data}=await supa.from('empleados').select('*').order('nombre');_empleados=data||[];}
 async function loadProveedores(){const{data}=await supa.from('proveedores').select('*').order('nombre');_proveedores=data||[];}
+async function loadCostosMes(){
+  const mes=today().slice(0,7);
+  const[yr,mn]=mes.split('-');
+  const desde=`${yr}-${mn}-01`;
+  const hasta=`${yr}-${mn}-31`;
+  const idsGruposMes=_grupos.filter(g=>g.fecha&&g.fecha>=desde&&g.fecha<=hasta).map(g=>g.id);
+  if(!idsGruposMes.length){_costosMes=[];return;}
+  const{data}=await supa.from('costos_grupo').select('*').in('grupo_id',idsGruposMes);
+  _costosMes=data||[];
+}
 
 // ── DASHBOARD ──
 async function renderDashboard(){
@@ -899,10 +953,17 @@ async function renderDashboard(){
 
   const personas=gMes.reduce((s,g)=>s+(g.cantidad||0),0)+rMes.reduce((s,r)=>s+(r.cantidad||0),0);
 
+  // Costos reales del mes desde costos_grupo
+  const idsGruposMes=new Set(gMes.map(g=>g.id));
+  const totalCostos=_costosMes.filter(c=>idsGruposMes.has(c.grupo_id)).reduce((s,c)=>s+(c.valor||0),0);
+  const totalUtilidad=totalIng-totalCostos;
+  const margenPct=totalIng>0?Math.round(totalUtilidad/totalIng*100):0;
+  const hayCostos=totalCostos>0;
+
   document.getElementById('dash-ingresos').textContent=fmt(totalIng);
-  document.getElementById('dash-costos').textContent=fmt(0);
-  document.getElementById('dash-utilidad').textContent=fmt(totalIng);
-  document.getElementById('dash-margen').textContent='100% margen (sin costos registrados)';
+  document.getElementById('dash-costos').textContent=fmt(totalCostos);
+  document.getElementById('dash-utilidad').textContent=fmt(totalUtilidad);
+  document.getElementById('dash-margen').textContent=hayCostos?`${margenPct}% margen bruto`:'Sin costos registrados aún';
   document.getElementById('dash-personas').textContent=personas.toLocaleString('es-CO');
   document.getElementById('dash-grupos').textContent=gMes.length;
   document.getElementById('dash-cobrar').textContent=fmt(totalCobrar);
@@ -984,9 +1045,13 @@ function renderGrupos(){
 
   document.getElementById('g-count').textContent=filtered.length;
   document.getElementById('g-personas').textContent=filtered.reduce((s,g)=>s+(g.cantidad||0),0).toLocaleString('es-CO');
-  document.getElementById('g-facturado').textContent=fmt(filtered.reduce((s,g)=>s+(g.valor_contrato||0),0));
+  const totalFact=filtered.reduce((s,g)=>s+(g.valor_contrato||0),0);
+  document.getElementById('g-facturado').textContent=fmt(totalFact);
   document.getElementById('g-cobrar').textContent=fmt(filtered.reduce((s,g)=>s+(g.debe||0),0));
-  document.getElementById('g-utilidad').textContent='Por calcular';
+  const idsFiltered=new Set(filtered.map(g=>g.id));
+  const costosFiltered=_costosMes.filter(c=>idsFiltered.has(c.grupo_id)).reduce((s,c)=>s+(c.valor||0),0);
+  const utilGrupos=totalFact-costosFiltered;
+  document.getElementById('g-utilidad').textContent=costosFiltered>0?fmt(utilGrupos):'Sin costos';
 
   const tb=document.getElementById('tbody-grupos');
   if(!filtered.length){tb.innerHTML=`<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:2rem">Sin grupos registrados</td></tr>`;return;}
@@ -1144,12 +1209,14 @@ async function guardarCosto(){
   document.getElementById('c-valor').value='';
   document.getElementById('c-prov').value='';
   document.getElementById('c-concepto').selectedIndex=0;
+  await loadCostosMes();
   await renderCostos();
 }
 
 async function eliminarCosto(id){
   if(!confirm('¿Eliminar este costo?'))return;
   await supa.from('costos_grupo').delete().eq('id',id);
+  await loadCostosMes();
   await renderCostos();
 }
 
@@ -1585,6 +1652,149 @@ async function guardarUsuario(){
   const{error}=await supa.from('usuarios').insert({usuario,password,nombre,rol,unidad,activo:true});
   if(!error){closeModal('modal-usuario');renderUsuarios();showAlert('alert-usuarios','Usuario creado correctamente.','ok');}
   else{showAlert('alert-usuarios','Error: '+error.message,'err');}
+}
+
+// ── CALENDARIO ──
+let _calYear=new Date().getFullYear();
+let _calMonth=new Date().getMonth();
+let _calFiltros={grupos:true,rutas:true,viajes:true};
+let _calDiaActivo=null;
+
+const CAL_ESTADO_COLOR={por_confirmar:'#87CEEB',confirmado:'#4A90C4',realizado:'#5A8A5A',cancelado:'#8A4040'};
+const CAL_MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function calHoy(){
+  _calYear=new Date().getFullYear();
+  _calMonth=new Date().getMonth();
+  _calDiaActivo=null;
+  document.getElementById('cal-detalle').style.display='none';
+  renderCalendario();
+}
+function calMes(delta){
+  _calMonth+=delta;
+  if(_calMonth>11){_calMonth=0;_calYear++;}
+  if(_calMonth<0){_calMonth=11;_calYear--;}
+  _calDiaActivo=null;
+  document.getElementById('cal-detalle').style.display='none';
+  renderCalendario();
+}
+function calToggleFilter(tipo){
+  _calFiltros[tipo]=!_calFiltros[tipo];
+  const btn=document.getElementById('cal-filter-'+tipo);
+  btn.style.opacity=_calFiltros[tipo]?'1':'0.35';
+  renderCalendario();
+}
+
+function calGetEventosDia(dateStr){
+  const evs=[];
+  if(_calFiltros.grupos)
+    _grupos.filter(g=>g.fecha&&g.fecha.slice(0,10)===dateStr).forEach(g=>evs.push({tipo:'G',nombre:g.club_empresa||'Grupo',estado:g.estado,resp:g.responsable,personas:g.cantidad,extra:g.programa,id:g.id,_raw:g}));
+  if(_calFiltros.rutas)
+    _rutas.filter(r=>r.fecha&&r.fecha.slice(0,10)===dateStr).forEach(r=>evs.push({tipo:'R',nombre:r.destino||'Ruta',estado:r.estado,resp:r.responsable,personas:r.cantidad,extra:r.tipo==='nacional'?'Nacional':'Regional',id:r.id,_raw:r}));
+  if(_calFiltros.viajes)
+    _viajes.filter(v=>v.fecha&&v.fecha.slice(0,10)===dateStr).forEach(v=>evs.push({tipo:'V',nombre:v.cliente||'Viaje',estado:v.estado,resp:v.responsable,personas:1,extra:v.destino,id:v.id,_raw:v}));
+  return evs;
+}
+
+function renderCalendario(){
+  document.getElementById('cal-mes-label').textContent=`${CAL_MESES[_calMonth]} ${_calYear}`;
+  const totalEvsMes=_grupos.filter(g=>g.fecha&&g.fecha.startsWith(`${_calYear}-${String(_calMonth+1).padStart(2,'0')}`)).length
+    +_rutas.filter(r=>r.fecha&&r.fecha.startsWith(`${_calYear}-${String(_calMonth+1).padStart(2,'0')}`)).length
+    +_viajes.filter(v=>v.fecha&&v.fecha.startsWith(`${_calYear}-${String(_calMonth+1).padStart(2,'0')}`)).length;
+  document.getElementById('cal-label').textContent=`${CAL_MESES[_calMonth]} ${_calYear} · ${totalEvsMes} evento${totalEvsMes!==1?'s':''}`;
+
+  const firstDay=new Date(_calYear,_calMonth,1).getDay();
+  const daysInMonth=new Date(_calYear,_calMonth+1,0).getDate();
+  const todayStr=today();
+  const grid=document.getElementById('cal-grid');
+  let html='';
+
+  // Celdas vacías antes del día 1
+  for(let i=0;i<firstDay;i++){
+    html+=`<div style="min-height:90px;border-right:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(0,0,0,0.1)"></div>`;
+  }
+
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${_calYear}-${String(_calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evs=calGetEventosDia(dateStr);
+    const isToday=dateStr===todayStr;
+    const isActivo=dateStr===_calDiaActivo;
+    const hasCancelado=evs.every(e=>e.estado==='cancelado')&&evs.length>0;
+
+    let cellBg=isActivo?'rgba(74,144,196,0.15)':isToday?'rgba(74,144,196,0.08)':'transparent';
+    let borderTop=isToday?'2px solid var(--orange)':isActivo?'2px solid rgba(74,144,196,0.6)':'1px solid rgba(255,255,255,0.04)';
+
+    let evHtml='';
+    const MAX_VISIBLE=3;
+    evs.slice(0,MAX_VISIBLE).forEach(ev=>{
+      const color=CAL_ESTADO_COLOR[ev.estado]||'#87CEEB';
+      const prefix=ev.tipo==='G'?'G':ev.tipo==='R'?'R':'V';
+      evHtml+=`<div style="background:${color};border-radius:3px;padding:2px 4px;font-size:9px;font-weight:500;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="calVerDia('${dateStr}')">[${prefix}] ${ev.nombre}</div>`;
+    });
+    if(evs.length>MAX_VISIBLE){
+      evHtml+=`<div style="font-size:9px;color:var(--text3);padding:1px 4px;cursor:pointer" onclick="calVerDia('${dateStr}')">+${evs.length-MAX_VISIBLE} más</div>`;
+    }
+
+    html+=`<div onclick="calVerDia('${dateStr}')" style="min-height:90px;padding:6px;border-right:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04);border-top:${borderTop};background:${cellBg};cursor:${evs.length?'pointer':'default'};position:relative;transition:background .1s">
+      <div style="font-size:11px;font-weight:${isToday?'600':'400'};color:${isToday?'var(--orange)':evs.length?'var(--text)':'var(--text3)'};margin-bottom:4px">${d}</div>
+      ${evHtml}
+    </div>`;
+  }
+
+  // Celdas vacías al final para completar la grilla
+  const totalCeldas=firstDay+daysInMonth;
+  const resto=totalCeldas%7===0?0:7-(totalCeldas%7);
+  for(let i=0;i<resto;i++){
+    html+=`<div style="min-height:90px;border-right:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(0,0,0,0.1)"></div>`;
+  }
+  grid.innerHTML=html;
+
+  if(_calDiaActivo)calVerDia(_calDiaActivo,false);
+}
+
+function calVerDia(dateStr,scroll=true){
+  _calDiaActivo=dateStr;
+  const evs=calGetEventosDia(dateStr);
+  const det=document.getElementById('cal-detalle');
+  if(!evs.length){det.style.display='none';renderCalendario();return;}
+
+  const[yr,mn,dd]=dateStr.split('-');
+  const fechaFmt=`${dd}/${mn}/${yr}`;
+  const diasSem=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const diaSem=diasSem[new Date(dateStr).getDay()];
+
+  const tipoLabel={G:'Grupo',R:'Ruta',V:'Viaje'};
+  const filas=evs.map(ev=>{
+    const color=CAL_ESTADO_COLOR[ev.estado]||'#87CEEB';
+    const estadoLabel={por_confirmar:'Por confirmar',confirmado:'Confirmado',realizado:'Realizado',cancelado:'Cancelado'}[ev.estado]||ev.estado;
+    const respChip=ev.resp?`<span class="chip-${ev.resp.toLowerCase()}">${ev.resp}</span>`:'—';
+    return`<tr>
+      <td><span style="background:${color};color:#fff;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600">${ev.tipo}</span></td>
+      <td style="font-weight:500">${ev.nombre}</td>
+      <td>${ev.extra||'—'}</td>
+      <td>${respChip}</td>
+      <td style="text-align:center">${ev.personas||'—'}</td>
+      <td><span class="badge" style="background:${color}22;color:${color}">${estadoLabel}</span></td>
+      <td>${ev.tipo==='G'?`<button class="btn btn-sm" onclick="abrirEditarGrupo(${ev.id})">Ver</button>`:ev.tipo==='R'?`<button class="btn btn-sm" onclick="abrirEditarRuta(${ev.id})">Ver</button>`:`<button class="btn btn-sm" onclick="abrirEditarViaje(${ev.id})">Ver</button>`}</td>
+    </tr>`;
+  }).join('');
+
+  det.style.display='block';
+  det.innerHTML=`<div class="card" style="padding:14px 20px">
+    <div class="flex-between" style="margin-bottom:12px">
+      <div class="card-title" style="margin:0">${diaSem} ${fechaFmt} — ${evs.length} evento${evs.length!==1?'s':''}</div>
+      <button class="btn btn-sm" onclick="document.getElementById('cal-detalle').style.display='none';_calDiaActivo=null;renderCalendario()">✕ Cerrar</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tipo</th><th>Nombre</th><th>Destino / Info</th><th>Responsable</th><th>Pers.</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+  </div>`;
+
+  renderCalendario();
+  if(scroll)det.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 // ── INIT ──
